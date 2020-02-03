@@ -1,49 +1,126 @@
 import React, {Component} from 'react';
-import {AppRegistry, StyleSheet, Text, View, Alert} from 'react-native';
+import {Button, Text, View} from 'react-native';
+import {RNCamera} from 'react-native-camera';
 
-import BarcodeScanner, {
-  Exception,
-  FocusMode,
-  TorchMode,
-  CameraFillMode,
-  BarcodeType,
-  pauseScanner,
-  resumeScanner,
-} from 'react-native-barcode-scanner-google';
+class ProductScanRNCamera extends Component {
+  constructor(props) {
+    super(props);
+    this.camera = null;
+    this.barcodeCodes = [];
 
-export default class ScanCodeScreen extends Component {
+    this.state = {
+      camera: {
+        type: RNCamera.Constants.Type.back,
+        flashMode: RNCamera.Constants.FlashMode.auto,
+      },
+    };
+  }
+
+  barcodeRecognized = ({ barcodes }) => {
+    barcodes.forEach(barcode => console.warn(barcode.data))
+  };
+
+  async takePicture() {
+    if (this.camera) {
+      const options = {quality: 0.5, base64: true};
+      const data = await this.camera.takePictureAsync(options);
+      console.log(data.uri);
+    }
+  }
+
+  pendingView() {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: 'lightgreen',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+        <Text>Waiting</Text>
+      </View>
+    );
+  }
+
   render() {
     return (
-      <View style={{flex: 1}}>
-        <BarcodeScanner
-          style={{flex: 1}}
-          onBarcodeRead={({data, type}) => {
-            console.log(data)
-            // handle your scanned barcodes here!
-            // as an example, we show an alert:
-            Alert.alert(`Barcode '${data}' of type '${type}' was scanned.`);
+      <View style={styles.container}>
+        <RNCamera
+          ref={ref => {
+            this.camera = ref;
           }}
-          onException={exceptionKey => {
-            // check instructions on Github for a more detailed overview of these exceptions.
-            switch (exceptionKey) {
-              case Exception.NO_PLAY_SERVICES:
-              // tell the user they need to update Google Play Services
-              case Exception.LOW_STORAGE:
-              // tell the user their device doesn't have enough storage to fit the barcode scanning magic
-              case Exception.NOT_OPERATIONAL:
-              // Google's barcode magic is being downloaded, but is not yet operational.
-              default:
-                break;
-            }
-          }}
-          focusMode={FocusMode.AUTO /* could also be TAP or FIXED */}
-          torchMode={TorchMode.ON /* could be the default OFF */}
-          cameraFillMode={CameraFillMode.COVER /* could also be FIT */}
-          barcodeType={
-            BarcodeType.ALL /* replace with ALL for all alternatives */
+          defaultTouchToFocus
+          flashMode={this.state.camera.flashMode}
+          mirrorImage={false}
+          onGoogleVisionBarcodesDetected={this.barcodeRecognized}
+          onFocusChanged={() => {}}
+          onZoomChanged={() => {}}
+          permissionDialogTitle={'Permission to use camera'}
+          permissionDialogMessage={
+            'We need your permission to use your camera phone'
           }
+          style={styles.preview}
+          type={this.state.camera.type}
         />
+        <View style={[styles.overlay, styles.topOverlay]}>
+          <Text style={styles.scanScreenMessage}>Please scan the barcode.</Text>
+        </View>
+        <View style={[styles.overlay, styles.bottomOverlay]}>
+          {/* <Button
+            onPress={() => {
+              console.log('scan clicked');
+            }}
+            style={styles.enterBarcodeManualButton}
+            title="Enter Barcode"
+          /> */}
+        </View>
       </View>
     );
   }
 }
+
+const styles = {
+  container: {
+    flex: 1,
+  },
+  preview: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  overlay: {
+    position: 'absolute',
+    padding: 16,
+    right: 0,
+    left: 0,
+    alignItems: 'center',
+  },
+  topOverlay: {
+    top: 0,
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  bottomOverlay: {
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  enterBarcodeManualButton: {
+    padding: 15,
+    backgroundColor: 'white',
+    borderRadius: 40,
+  },
+  scanScreenMessage: {
+    fontSize: 14,
+    color: 'white',
+    textAlign: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+};
+
+export default ProductScanRNCamera;
